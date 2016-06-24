@@ -804,8 +804,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 e = expected.loc[today]
                 for i, input_ in enumerate(inputs):
                     # Each macro input should only have one column.
-                    assert input_.shape == (1, 1)
-                    assert_equal(input_[0][0], e[i])
+                    assert input_.shape == (self.window_length, 1)
+                    assert_equal(input_[0, 0], e[i])
 
         # Run the pipeline with our custom factor. Assertions about the
         # expected macro data are made in the `compute` function of our custom

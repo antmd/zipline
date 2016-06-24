@@ -333,7 +333,7 @@ def new_dataset(expr, deltas, missing_values):
     the same type.
     """
     missing_values = dict(missing_values)
-    columns = {'ndim': 2 if SID_FIELD_NAME in expr.fields else 1}
+    class_dict = {'ndim': 2 if SID_FIELD_NAME in expr.fields else 1}
     for name, type_ in expr.dshape.measure.fields:
         # Don't generate a column for sid or timestamp, since they're
         # implicitly the labels if the arrays that will be passed to pipeline
@@ -348,7 +348,7 @@ def new_dataset(expr, deltas, missing_values):
             )
         else:
             col = NonPipelineField(name, type_)
-        columns[name] = col
+        class_dict[name] = col
 
     name = expr._name
     if name is None:
@@ -359,7 +359,7 @@ def new_dataset(expr, deltas, missing_values):
     if PY2 and isinstance(name, unicode):  # pragma: no cover # noqa
         name = name.encode('utf-8')
 
-    return type(name, (DataSet,), columns)
+    return type(name, (DataSet,), class_dict)
 
 
 def _check_resources(name, expr, resources):
@@ -962,7 +962,7 @@ class BlazeLoader(dict):
             raise AssertionError('all columns must come from the same dataset')
 
         expr, deltas, checkpoints, odo_kwargs = self[dataset]
-        have_sids = SID_FIELD_NAME in expr.fields
+        have_sids = (dataset.ndim == 2)
         asset_idx = pd.Series(index=assets, data=np.arange(len(assets)))
         assets = list(map(int, assets))  # coerce from numpy.int64
         added_query_fields = [AD_FIELD_NAME, TS_FIELD_NAME] + (
@@ -1140,8 +1140,9 @@ class BlazeLoader(dict):
         else:
             # If we do not have sids, use the column view to make a single
             # column vector which is unassociated with any assets.
-            adjustments_from_deltas = adjustments_from_deltas_no_sids
             column_view = op.itemgetter(np.s_[:, np.newaxis])
+
+            adjustments_from_deltas = adjustments_from_deltas_no_sids
             mask = np.full(
                 shape=(len(mask), 1), fill_value=True, dtype=bool_dtype,
             )
